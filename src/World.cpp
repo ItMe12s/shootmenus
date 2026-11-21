@@ -56,6 +56,12 @@ namespace shootmenus {
         }
     }
 
+    static bool overlaps(CCRect const& a, CCRect const& b) {
+        constexpr float e = 0.01f;
+        return a.getMinX() < b.getMaxX() - e && a.getMaxX() > b.getMinX() + e &&
+            a.getMinY() < b.getMaxY() - e && a.getMaxY() > b.getMinY() + e;
+    }
+
     void World::moveCube(float dt) {
         auto dir = static_cast<float>(m_held[kRight]) - static_cast<float>(m_held[kLeft]);
         m_velocity.x = approach(m_velocity.x, dir * kSpeed, (m_grounded ? 2400.f : 1100.f) * dt);
@@ -69,15 +75,32 @@ namespace shootmenus {
 
         auto win = CCDirector::get()->getWinSize();
         auto pos = m_body->getPosition();
+        auto cube = [&] { return CCRect{pos.x - kHalf, pos.y - kHalf, kHalf * 2.f, kHalf * 2.f}; };
 
-        pos.x += m_velocity.x * dt;
+        auto dx = m_velocity.x * dt;
+        pos.x += dx;
+        for (auto const& p : m_platforms) {
+            if (dx == 0.f || !overlaps(cube(), p.box)) continue;
+            pos.x = dx > 0.f ? p.box.getMinX() - kHalf : p.box.getMaxX() + kHalf;
+            m_velocity.x = 0.f;
+        }
         if (pos.x < kHalf || pos.x > win.width - kHalf) {
             pos.x = std::clamp(pos.x, kHalf, win.width - kHalf);
             m_velocity.x = 0.f;
         }
 
-        pos.y += m_velocity.y * dt;
+        auto dy = m_velocity.y * dt;
+        pos.y += dy;
         m_grounded = false;
+        for (auto const& p : m_platforms) {
+            if (dy == 0.f || !overlaps(cube(), p.box)) continue;
+            if (dy < 0.f) {
+                pos.y = p.box.getMaxY() + kHalf;
+                m_grounded = true;
+            }
+            else pos.y = p.box.getMinY() - kHalf;
+            m_velocity.y = 0.f;
+        }
         if (pos.y <= kHalf) {
             pos.y = kHalf;
             m_velocity.y = 0.f;

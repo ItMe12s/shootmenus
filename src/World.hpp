@@ -20,5 +20,10 @@ namespace shootmenus {
         bool m_firing = false;
         std::array<geode::ListenerHandle, 4> m_keys;
         geode::ListenerHandle m_mouse;
+
+        void moveCube(float dt);
+        cocos2d::CCPoint m_velocity;
+        bool m_grounded = false;
+        float m_iconAngle = 0.f;
     };
 }

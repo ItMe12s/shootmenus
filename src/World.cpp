@@ -12,6 +12,52 @@ namespace shootmenus {
     constexpr size_t kUp = 2;
     constexpr size_t kDown = 3;
 
+    constexpr float kSpeed = 240.f;
+    constexpr float kJump = 520.f;
+    constexpr float kGravity = 1700.f;
+    constexpr float kMaxFall = 900.f;
+
+    static float approach(float value, float target, float step) {
+        return value < target ? std::min(value + step, target) : std::max(value - step, target);
+    }
+
+    void World::moveCube(float dt) {
+        // Kinda like super mario movement
+        auto dir = static_cast<float>(m_held[kRight]) - static_cast<float>(m_held[kLeft]);
+        m_velocity.x = approach(m_velocity.x, dir * kSpeed, (m_grounded ? 2400.f : 1100.f) * dt);
+        if (m_held[kUp] && m_grounded) {
+            m_velocity.y = kJump;
+            m_grounded = false;
+        }
+        auto gravity = kGravity * (m_held[kDown] ? 2.5f : (!m_held[kUp] && m_velocity.y > 0.f ? 1.8f : 1.f));
+        m_velocity.y = std::max(m_velocity.y - gravity * dt, -kMaxFall);
+
+        auto win = CCDirector::get()->getWinSize();
+        auto pos = m_body->getPosition();
+        
+        pos.x += m_velocity.x * dt;
+        if (pos.x < kHalf || pos.x > win.width - kHalf) {
+            pos.x = std::clamp(pos.x, kHalf, win.width - kHalf);
+            m_velocity.x = 0.f;
+        }
+
+        pos.y += m_velocity.y * dt;
+        m_grounded = false;
+        if (pos.y <= kHalf) {
+            pos.y = kHalf;
+            m_velocity.y = 0.f;
+            m_grounded = true;
+        }
+        pos.y = std::min(pos.y, win.height + 200.f);
+        m_body->setPosition(pos);
+
+        // Snap icon
+        if (m_grounded) m_iconAngle = approach(m_iconAngle, std::round(m_iconAngle / 90.f) * 90.f, 720.f * dt);
+        else m_iconAngle += (m_velocity.x < 0.f ? -1.f : 1.f) * 420.f * dt;
+        m_icon->setRotation(m_iconAngle);
+    }
+
+    // Init show/hide
     World* World::create() {
         auto ret = new World();
         if (ret->init()) {
@@ -32,6 +78,7 @@ namespace shootmenus {
         overlay->addChild(World::create());
     }
 
+    // Main
     bool World::init() {
         if (!CCNode::init()) return false;
         setID("world"_spr);
@@ -61,9 +108,7 @@ namespace shootmenus {
                 m_firing = data.action == MouseInputData::Action::Press;
             return ListenerResult::Propagate;
         });
-
         scheduleUpdate();
-
         return true;
     }
 
@@ -71,6 +116,9 @@ namespace shootmenus {
         auto inLevel = PlayLayer::get() || LevelEditorLayer::get();
         setVisible(!inLevel);
         auto scene = CCDirector::get()->getRunningScene();
+
         if (inLevel || !scene || typeinfo_cast<CCTransitionScene*>(scene)) return;
+        dt = std::min(dt, 1.f / 30.f);
+        moveCube(dt);
     }
 }

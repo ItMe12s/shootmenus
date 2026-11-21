@@ -30,6 +30,7 @@ CMakeUserPresets.json
 # Other
 .cache/
 __pycache__/
+*.pdn
 
 # graphify
 /graphify-out/

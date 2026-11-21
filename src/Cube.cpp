@@ -18,6 +18,9 @@ namespace shootmenus {
     constexpr float kCeiling = 200.f;
     constexpr float kSpin = 420.f;
     constexpr float kSnap = 720.f;
+    constexpr float kGunLength = 62.f;
+    constexpr CCPoint kGrip{0.350f, 0.633f};
+    constexpr CCPoint kShoulder{0.f, -3.f};
 
     static float approach(float value, float target, float step) {
         return value < target ? std::min(value + step, target) : std::max(value - step, target);
@@ -48,6 +51,16 @@ namespace shootmenus {
         if (gm->getPlayerGlow()) m_icon->setGlowOutline(gm->colorForIdx(gm->getPlayerGlowColor()));
         m_icon->setScale(kHalf * 2.f / 30.f);
         addChild(m_icon);
+
+        m_gun = CCSprite::create("gun.png"_spr);
+        if (!m_gun) return false;
+        m_gun->setAnchorPoint(kGrip);
+        m_gun->setScale(kGunLength / m_gun->getContentWidth());
+
+        m_pivot = CCNode::create();
+        m_pivot->setPosition(kShoulder);
+        m_pivot->addChild(m_gun);
+        addChild(m_pivot, 1);
 
         for (size_t i = 0; i < kKeys.size(); i++) {
             m_keys[i] = KeyboardInputEvent(kKeys[i]).listen([this, i](KeyboardInputData& data) {
@@ -120,5 +133,13 @@ namespace shootmenus {
             m_iconAngle = approach(m_iconAngle, std::round(m_iconAngle / 90.f) * 90.f, kSnap * dt);
         else m_iconAngle += (m_velocity.x < 0.f ? -1.f : 1.f) * kSpin * dt;
         m_icon->setRotation(m_iconAngle);
+    }
+
+    void Cube::aim(CCPoint target) {
+        auto delta = convertToNodeSpace(target) - m_pivot->getPosition();
+        auto left = delta.x < 0.f;
+        m_pivot->setRotation(-CC_RADIANS_TO_DEGREES(std::atan2(delta.y, delta.x)));
+        m_gun->setScaleY(std::abs(m_gun->getScaleY()) * (left ? -1.f : 1.f));
+        m_icon->setScaleX(std::abs(m_icon->getScaleX()) * (left ? -1.f : 1.f));
     }
 } // namespace shootmenus

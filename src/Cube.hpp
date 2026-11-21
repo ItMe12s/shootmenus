@@ -33,5 +33,10 @@ namespace shootmenus {
         bool m_firing = false;
         std::array<geode::ListenerHandle, kKeys.size()> m_keys;
         geode::ListenerHandle m_mouse;
+
+        void aim(cocos2d::CCPoint target);
+
+        geode::Ref<cocos2d::CCNode> m_pivot;
+        geode::Ref<cocos2d::CCSprite> m_gun;
     };
 } // namespace shootmenus

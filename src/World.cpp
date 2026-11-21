@@ -40,17 +40,21 @@ namespace shootmenus {
             world->removeFromParent();
             return;
         }
-        overlay->addChild(World::create());
+        if (auto world = World::create()) overlay->addChild(world);
     }
 
     bool World::init() {
         if (!CCNode::init()) return false;
         setID("world"_spr);
+
         m_cube = Cube::create();
+        if (!m_cube) return false;
         m_cube->setPosition(getMousePos());
         addChild(m_cube);
+
         m_debug = CCDrawNode::create();
         addChild(m_debug, 100);
+
         scheduleUpdate();
         return true;
     }
@@ -73,6 +77,7 @@ namespace shootmenus {
             m_debug->drawRect(box, {0, 0, 0, 0}, 1.f, {0.2f, 1, 0.2f, 1});
 
         m_cube->move(std::min(dt, 1.f / 30.f), m_platforms);
+        m_cube->aim(getMousePos());
     }
 
     void World::collect(CCNode* node, CCRect const& clip) {

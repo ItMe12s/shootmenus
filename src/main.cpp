@@ -1,5 +1,6 @@
-#include <Geode/Geode.hpp>
 #include "World.hpp"
+
+#include <Geode/Geode.hpp>
 
 using namespace geode::prelude;
 

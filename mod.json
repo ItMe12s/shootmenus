@@ -2,9 +2,7 @@
 	"geode": "5.11.2",
 	"gd": {
 		"win": "2.2081",
-		"android": "2.2081",
-		"mac": "2.2081",
-		"ios": "2.2081"
+		"mac": "2.2081"
 	},
 	"id": "imes.shootmenus",
 	"name": "shootmenus",
@@ -16,5 +14,18 @@
 		"homepage": "https://imes.in.th/",
 		"community": "https://discord.gg/E8f6D6XqbW",
 		"source": "https://github.com/ItMe12s/shootmenus"
+	},
+	"resources": {
+		"sprites": [
+			"resources/*.png"
+		]
+	},
+	"settings": {
+		"spawn-cube": {
+			"type": "keybind",
+			"name": "Spawn/Remove Cube",
+			"description": "At your mouse position.",
+			"default": "T"
+		}
 	}
 }

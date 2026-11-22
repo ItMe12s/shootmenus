@@ -9,7 +9,10 @@
 	"version": "v1.0.0",
 	"developer": "imes",
 	"description": "Run around and shoot gd menus!",
-	"tags": [],
+	"tags": [
+		"interface",
+		"joke"
+	],
 	"links": {
 		"homepage": "https://imes.in.th/",
 		"community": "https://discord.gg/E8f6D6XqbW",
@@ -30,7 +33,7 @@
 		"left-click": {
 			"type": "bool",
 			"name": "Use left click instead",
-			"description": "Very innovative settings.",
+			"description": "Very innovative settings. You might press buttons tho.",
 			"default": false
 		}
 	}

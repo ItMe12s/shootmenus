@@ -19,6 +19,9 @@ namespace shootmenus {
     constexpr size_t kMaxHoles = 300;
     constexpr float kBitPixel = 1.f;
     constexpr float kAreaPerHit = 120.f;
+    constexpr float kShakeDecay = 5.f;
+    constexpr float kShakeAmp = 4.f;
+    constexpr float kFlashTime = 0.045f;
 
     static CCRect localRect(CCNode* node) {
         auto size = node->getContentSize();
@@ -93,6 +96,7 @@ namespace shootmenus {
         auto scene = CCDirector::get()->getRunningScene();
         if (inLevel || !scene || typeinfo_cast<CCTransitionScene*>(scene)) return;
         dt = std::min(dt, 1.f / 30.f);
+        shake(scene, dt);
 
         m_platforms.clear();
         m_hittables.clear();
@@ -172,6 +176,28 @@ namespace shootmenus {
             },
             shot.port
         );
+
+        for (int i = 0; i < 2; i++) {
+            addBit("chip.png"_spr, {
+                .velocity = rotate(shot.dir, rnd(-25.f, 25.f)) * rnd(30.f, 90.f),
+                .life = rnd(0.4f, 0.7f),
+                .fade = 0.7f,
+                .gravity = -40.f,
+                .drag = 3.f,
+                .growth = 1.2f,
+                .opacity = 90,
+                .color = {190, 185, 175},
+            }, shot.origin);
+        }
+
+        if (auto flash = pixelSprite("flash.png"_spr)) {
+            flash->setAnchorPoint({0.f, 0.5f});
+            flash->setRotation(-CC_RADIANS_TO_DEGREES(std::atan2(shot.dir.y, shot.dir.x)));
+            auto scale = CC_CONTENT_SCALE_FACTOR() * kBitPixel;
+            flash->setScaleX(scale * rnd(0.7f, 1.1f));
+            flash->setScaleY(scale * rnd(0.8f, 1.1f) * (rnd(0.f, 1.f) < 0.5f ? -1.f : 1.f));
+            addBit(flash, {.life = kFlashTime, .fade = kFlashTime, .additive = true}, shot.origin);
+        }
     }
 
     void World::updateBullets(float dt) {
@@ -200,7 +226,7 @@ namespace shootmenus {
         auto hit = sprite->convertToWorldSpace(bullet.hitLocal);
         hitFx(hit, -bullet.dir);
         addHole(sprite, bullet.hitLocal);
-    
+
         auto t = sprite->nodeToWorldTransform();
         auto size = sprite->getContentSize();
         auto area = size.width * size.height * std::abs(t.a * t.d - t.b * t.c);
@@ -417,5 +443,24 @@ namespace shootmenus {
                 }, pos);
             }
         }
+    }
+
+    void World::shake(CCNode* scene, float dt) {
+        if (m_shaken && m_shaken != scene) {
+            m_shaken->setPosition(CCPointZero);
+            m_shaken = nullptr;
+        }
+        if (m_shake <= 0.f) return;
+        m_shake = std::max(0.f, m_shake - kShakeDecay * dt);
+        auto amount = m_shake * m_shake * kShakeAmp;
+        auto offset = m_shake > 0.f ? CCPoint{rnd(-amount, amount), rnd(-amount, amount)} : CCPointZero;
+        scene->setPosition(offset);
+        setPosition(offset);
+        m_shaken = m_shake > 0.f ? scene : nullptr;
+    }
+
+    void World::onExit() {
+        if (m_shaken) m_shaken->setPosition(CCPointZero);
+        CCNode::onExit();
     }
 } // namespace shootmenus

@@ -49,5 +49,8 @@ namespace shootmenus {
         bool m_firing = false;
         std::array<geode::ListenerHandle, kKeys.size()> m_keys;
         geode::ListenerHandle m_mouse;
+
+        float m_kick = 0.f;
+        float m_bloom = 0.f;
     };
 } // namespace shootmenus

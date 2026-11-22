@@ -62,6 +62,8 @@ namespace shootmenus {
         void addBit(char const* frame, Bit bit, cocos2d::CCPoint pos);
         void addBit(cocos2d::CCSprite* sprite, Bit bit, cocos2d::CCPoint pos);
         void updateBits(float dt);
+        void onExit() override;
+        void shake(cocos2d::CCNode* scene, float dt);
         bool land(
             cocos2d::CCPoint& pos, cocos2d::CCPoint& vel, float prevBottom, float radius, float bounce
         );
@@ -73,5 +75,8 @@ namespace shootmenus {
         geode::Ref<cocos2d::CCDrawNode> m_tracers;
         std::vector<Bit> m_bits;
         std::vector<Hole> m_holes;
+
+        float m_shake = 0.f;
+        geode::Ref<cocos2d::CCNode> m_shaken;
     };
 } // namespace shootmenus

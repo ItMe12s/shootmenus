@@ -27,6 +27,14 @@ namespace shootmenus {
     constexpr CCPoint kPort{33.f / 64.f, 1.f - 4.f / 24.f};
     constexpr float kFireInterval = 0.1f;
     constexpr float kFlipDeadzone = 0.15f;
+    constexpr float kKickBack = 5.f;
+    constexpr float kClimb = 0.1f;
+    constexpr float kKickRecover = 9.f;
+    constexpr float kSpread = 0.012f;
+    constexpr float kBloomSpread = 0.05f;
+    constexpr float kBloomPerShot = 0.15f;
+    constexpr float kBloomRecover = 1.5f;
+    constexpr float kKnockback = 25.f;
 
     static float approach(float value, float target, float step) {
         return value < target ? std::min(value + step, target) : std::max(value - step, target);
@@ -143,6 +151,9 @@ namespace shootmenus {
     }
 
     void Cube::aim(CCPoint target, float dt) {
+        m_kick = std::max(0.f, m_kick - kKickRecover * dt);
+        m_bloom = std::max(0.f, m_bloom - kBloomRecover * dt);
+
         auto delta = convertToNodeSpace(target) - CCPoint{0.f, kShoulder.y};
         auto goal = std::atan2(delta.y, delta.x);
         auto turn = std::remainder(goal - m_aimAngle, 2.f * std::numbers::pi_v<float>);
@@ -153,7 +164,9 @@ namespace shootmenus {
         else if (facing > kFlipDeadzone) m_left = false;
 
         m_pivot->setPosition({m_left ? -kShoulder.x : kShoulder.x, kShoulder.y});
-        m_pivot->setRotation(-CC_RADIANS_TO_DEGREES(m_aimAngle));
+        auto climb = m_kick * kClimb * (m_left ? -1.f : 1.f);
+        m_pivot->setRotation(-CC_RADIANS_TO_DEGREES(m_aimAngle + climb));
+        m_gun->setPositionX(-m_kick * kKickBack);
         m_gun->setScaleY(std::abs(m_gun->getScaleY()) * (m_left ? -1.f : 1.f));
         m_icon->setScaleX(std::abs(m_icon->getScaleX()) * (m_left ? -1.f : 1.f));
     }
@@ -167,6 +180,13 @@ namespace shootmenus {
         CCPoint tip{kMuzzle.x * size.width, kMuzzle.y * size.height};
         auto origin = m_gun->convertToWorldSpace(tip);
         auto dir = (m_gun->convertToWorldSpace(tip + CCPoint{1.f, 0.f}) - origin).normalize();
+
+        auto spread = (kSpread + m_bloom * kBloomSpread) * utils::random::generate(-1.f, 1.f);
+        dir = dir.rotateByAngle(CCPointZero, spread);
+
+        m_kick = 1.f;
+        m_bloom = std::min(1.f, m_bloom + kBloomPerShot);
+        m_velocity = m_velocity - dir * kKnockback;
 
         CCPoint portLocal{kPort.x * size.width, kPort.y * size.height};
         auto port = m_gun->convertToWorldSpace(portLocal);

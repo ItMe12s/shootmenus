@@ -22,9 +22,10 @@ namespace shootmenus {
     constexpr float kGunLength = 62.f;
     constexpr CCPoint kGrip{0.350f, 0.633f};
     constexpr CCPoint kShoulder{4.f, -5.f};
-    constexpr float kAimSharpness = 15.f;
+    constexpr float kAimSharpness = 20.f;
     constexpr CCPoint kMuzzle{63.f / 64.f, 1.f - 6.f / 24.f};
     constexpr float kFireInterval = 0.1f;
+    constexpr float kFlipDeadzone = 0.15f;
 
     static float approach(float value, float target, float step) {
         return value < target ? std::min(value + step, target) : std::max(value - step, target);
@@ -141,16 +142,19 @@ namespace shootmenus {
     }
 
     void Cube::aim(CCPoint target, float dt) {
-        auto delta = convertToNodeSpace(target) - m_pivot->getPosition();
+        auto delta = convertToNodeSpace(target) - CCPoint{0.f, kShoulder.y};
         auto goal = std::atan2(delta.y, delta.x);
         auto turn = std::remainder(goal - m_aimAngle, 2.f * std::numbers::pi_v<float>);
         m_aimAngle += turn * (1.f - std::exp(-kAimSharpness * dt));
 
-        auto left = std::cos(m_aimAngle) < 0.f;
-        m_pivot->setPosition({left ? -kShoulder.x : kShoulder.x, kShoulder.y});
+        auto facing = std::cos(m_aimAngle);
+        if (facing < -kFlipDeadzone) m_left = true;
+        else if (facing > kFlipDeadzone) m_left = false;
+
+        m_pivot->setPosition({m_left ? -kShoulder.x : kShoulder.x, kShoulder.y});
         m_pivot->setRotation(-CC_RADIANS_TO_DEGREES(m_aimAngle));
-        m_gun->setScaleY(std::abs(m_gun->getScaleY()) * (left ? -1.f : 1.f));
-        m_icon->setScaleX(std::abs(m_icon->getScaleX()) * (left ? -1.f : 1.f));
+        m_gun->setScaleY(std::abs(m_gun->getScaleY()) * (m_left ? -1.f : 1.f));
+        m_icon->setScaleX(std::abs(m_icon->getScaleX()) * (m_left ? -1.f : 1.f));
     }
 
     std::optional<Cube::Shot> Cube::trigger(float dt) {

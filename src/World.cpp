@@ -153,7 +153,8 @@ namespace shootmenus {
             done.push_back(b);
             return true;
         });
-        for (auto const& b : done) impact(b);
+        for (auto const& b : done)
+            impact(b);
     }
 
     void World::impact(Bullet const& bullet) {

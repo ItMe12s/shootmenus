@@ -16,7 +16,7 @@ namespace shootmenus {
             cocos2d::CCPoint up;
         };
 
-        static Cube* create();
+        CREATE_FUNC(Cube);
         void move(float dt, std::span<cocos2d::CCRect const> platforms);
         void aim(cocos2d::CCPoint target, float dt);
         std::optional<Shot> trigger(float dt);

@@ -51,16 +51,6 @@ namespace shootmenus {
             a.getMinY() < b.getMaxY() - e && a.getMaxY() > b.getMinY() + e;
     }
 
-    Cube* Cube::create() {
-        auto ret = new Cube();
-        if (ret->init()) {
-            ret->autorelease();
-            return ret;
-        }
-        delete ret;
-        return nullptr;
-    }
-
     bool Cube::init() {
         if (!CCNode::init()) return false;
         auto gm = GameManager::get();
@@ -71,9 +61,8 @@ namespace shootmenus {
         m_icon->setScale(kHalf * 2.f / 30.f);
         addChild(m_icon);
 
-        m_gun = CCSprite::create("gun.png"_spr);
+        m_gun = pixelSprite("gun.png"_spr);
         if (!m_gun) return false;
-        m_gun->getTexture()->setAliasTexParameters();
         m_gun->setAnchorPoint(kGrip);
         m_gun->setScale(kGunLength / m_gun->getContentWidth());
 
@@ -173,12 +162,12 @@ namespace shootmenus {
         if (facing < -kFlipDeadzone) m_left = true;
         else if (facing > kFlipDeadzone) m_left = false;
 
-        m_pivot->setPosition({m_left ? -kShoulder.x : kShoulder.x, kShoulder.y});
-        auto climb = m_kick * kClimb * (m_left ? -1.f : 1.f);
-        m_pivot->setRotation(-CC_RADIANS_TO_DEGREES(m_aimAngle + climb));
+        auto side = m_left ? -1.f : 1.f;
+        m_pivot->setPosition({kShoulder.x * side, kShoulder.y});
+        m_pivot->setRotation(-CC_RADIANS_TO_DEGREES(m_aimAngle + m_kick * kClimb * side));
         m_gun->setPositionX(-m_kick * kKickBack);
-        m_gun->setScaleY(std::abs(m_gun->getScaleY()) * (m_left ? -1.f : 1.f));
-        m_icon->setScaleX(std::abs(m_icon->getScaleX()) * (m_left ? -1.f : 1.f));
+        m_gun->setScaleY(std::abs(m_gun->getScaleY()) * side);
+        m_icon->setScaleX(std::abs(m_icon->getScaleX()) * side);
     }
 
     std::optional<Cube::Shot> Cube::trigger(float dt) {

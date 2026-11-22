@@ -60,16 +60,6 @@ namespace shootmenus {
         return std::pair{tmin, tmax};
     }
 
-    World* World::create() {
-        auto ret = new World();
-        if (ret->init()) {
-            ret->autorelease();
-            return ret;
-        }
-        delete ret;
-        return nullptr;
-    }
-
     void World::toggle() {
         if (PlayLayer::get() || LevelEditorLayer::get()) return;
         auto overlay = OverlayManager::get();
@@ -208,7 +198,7 @@ namespace shootmenus {
         if (auto flash = pixelSprite("flash.png"_spr)) {
             flash->setAnchorPoint({0.f, 0.5f});
             flash->setRotation(-CC_RADIANS_TO_DEGREES(std::atan2(shot.dir.y, shot.dir.x)));
-            auto scale = CC_CONTENT_SCALE_FACTOR() * kBitPixel;
+            auto scale = pixelScale();
             flash->setScaleX(scale * rnd(0.7f, 1.1f));
             flash->setScaleY(scale * rnd(0.8f, 1.1f) * (utils::random::chance(0.5) ? -1.f : 1.f));
             addBit(flash, {.life = kFlashTime, .fade = kFlashTime, .additive = true}, shot.origin);
@@ -258,7 +248,7 @@ namespace shootmenus {
             m_holes.front().sprite->removeFromParent();
             m_holes.erase(m_holes.begin());
         }
-        sprite->setScale(CC_CONTENT_SCALE_FACTOR() * kBitPixel);
+        sprite->setScale(pixelScale());
         sprite->setRotation(90.f * static_cast<int>(rnd(0.f, 4.f)));
         addChild(sprite, 3);
         m_holes.push_back({sprite, target, local});

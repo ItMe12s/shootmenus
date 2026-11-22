@@ -8,7 +8,7 @@
 namespace shootmenus {
     class World : public cocos2d::CCNode {
     public:
-        static World* create();
+        CREATE_FUNC(World);
         static void toggle();
 
     private:

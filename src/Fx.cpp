@@ -57,8 +57,8 @@ namespace shootmenus {
     void World::addBit(char const* frame, Bit bit, CCPoint pos) {
         auto sprite = pixelSprite(frame);
         if (!sprite) return;
-        bit.scale *= CC_CONTENT_SCALE_FACTOR() * kBitPixel;
-        bit.growth *= CC_CONTENT_SCALE_FACTOR() * kBitPixel;
+        bit.scale *= pixelScale();
+        bit.growth *= pixelScale();
         sprite->setScale(bit.scale);
         sprite->setRotation(rnd(0.f, 360.f));
         addBit(sprite, bit, pos);

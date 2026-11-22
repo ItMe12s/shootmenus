@@ -6,6 +6,10 @@
 namespace shootmenus {
     inline constexpr float kBitPixel = 1.f;
 
+    inline float pixelScale() {
+        return CC_CONTENT_SCALE_FACTOR() * kBitPixel;
+    }
+
     inline float rnd(float min, float max) {
         return geode::utils::random::generate(min, max);
     }

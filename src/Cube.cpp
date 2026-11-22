@@ -81,7 +81,7 @@ namespace shootmenus {
             });
         }
         m_mouse = MouseInputEvent().listen([this](MouseInputData& data) {
-            if (data.button == MouseInputData::Button::Right)
+            if (data.button == MouseInputData::Button::Left)
                 m_firing = data.action == MouseInputData::Action::Press;
             return ListenerResult::Propagate;
         });

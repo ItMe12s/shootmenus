@@ -7,7 +7,7 @@ namespace shootmenus {
     inline constexpr float kBitPixel = 1.f;
 
     inline float pixelScale() {
-        return CC_CONTENT_SCALE_FACTOR() * kBitPixel;
+        return cocos2d::CCDirector::get()->getContentScaleFactor() * kBitPixel;
     }
 
     inline float rnd(float min, float max) {

@@ -3,6 +3,7 @@
 #include "Cube.hpp"
 
 #include <Geode/Geode.hpp>
+#include <array>
 #include <vector>
 
 namespace shootmenus {
@@ -29,6 +30,8 @@ namespace shootmenus {
 
         struct Bit {
             geode::Ref<cocos2d::CCSprite> sprite;
+            cocos2d::CCPoint pos;
+            float angle = 0.f;
             cocos2d::CCPoint velocity;
             float spin = 0.f;
             float life = 1.f;
@@ -42,12 +45,16 @@ namespace shootmenus {
             cocos2d::ccColor3B color{255, 255, 255};
             bool streak = false;
             bool additive = false;
+            bool lit = false;
         };
 
-        struct Hole {
+        static constexpr int kMaxHoles = 16;
+
+        struct Damage {
             geode::Ref<cocos2d::CCSprite> sprite;
-            geode::Ref<cocos2d::CCSprite> target;
-            cocos2d::CCPoint local;
+            geode::Ref<cocos2d::CCGLProgram> program;
+            std::array<float, kMaxHoles * 3> holes{};
+            int hits = 0;
         };
 
         bool init() override;
@@ -61,8 +68,9 @@ namespace shootmenus {
         void fire(Cube::Shot const& shot);
         void updateBullets(float dt);
         void impact(Bullet const& bullet);
-        void addHole(cocos2d::CCSprite* target, cocos2d::CCPoint local);
-        void updateHoles();
+        Damage& addHole(cocos2d::CCSprite* sprite, cocos2d::CCPoint local);
+        void release(Damage& damage);
+        geode::Ref<cocos2d::CCGLProgram> holeProgram();
         void shatter(cocos2d::CCSprite* sprite, cocos2d::CCPoint hit, cocos2d::CCPoint dir);
 
         void hitFx(cocos2d::CCPoint pos, cocos2d::CCPoint normal);
@@ -80,7 +88,8 @@ namespace shootmenus {
         std::vector<Bullet> m_bullets;
         geode::Ref<cocos2d::CCDrawNode> m_tracers;
 
-        std::vector<Hole> m_holes;
+        std::vector<Damage> m_damage;
+        std::vector<geode::Ref<cocos2d::CCGLProgram>> m_spare;
         std::vector<Bit> m_bits;
 
         float m_shake = 0.f;

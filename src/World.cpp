@@ -7,8 +7,6 @@
 #include <algorithm>
 #include <cmath>
 #include <optional>
-#include <ranges>
-#include <unordered_map>
 #include <utility>
 
 using namespace geode::prelude;
@@ -17,7 +15,7 @@ namespace shootmenus {
     constexpr float kRange = 1500.f;
     constexpr float kBulletSpeed = 3200.f;
 
-    constexpr size_t kMaxHoles = 300;
+    constexpr float kHoleRadius = 2.f;
     constexpr float kAreaPerHit = 120.f;
 
     constexpr float kFlashTime = 0.045f;
@@ -58,6 +56,10 @@ namespace shootmenus {
 
         if (!slab(o.x, d.x, size.width) || !slab(o.y, d.y, size.height)) return std::nullopt;
         return std::pair{tmin, tmax};
+    }
+
+    static CCGLProgram* baseProgram() {
+        return CCShaderCache::sharedShaderCache()->programForKey(kCCShader_PositionTextureColor);
     }
 
     void World::toggle() {
@@ -109,11 +111,18 @@ namespace shootmenus {
         if (auto shot = m_cube->trigger(dt)) fire(*shot);
         updateBullets(dt);
         updateBits(dt);
-        updateHoles();
+        std::erase_if(m_damage, [&](Damage& d) {
+            if (d.sprite->getParent()) return false;
+            release(d);
+            return true;
+        });
     }
 
     void World::onExit() {
         if (m_shaken) m_shaken->setPosition(CCPointZero);
+        for (auto& d : m_damage)
+            release(d);
+        m_damage.clear();
         CCNode::onExit();
     }
 
@@ -231,49 +240,51 @@ namespace shootmenus {
         if (!sprite || !sprite->getParent() || !sprite->isVisible()) return;
         auto hit = sprite->convertToWorldSpace(bullet.hitLocal);
         hitFx(hit, -bullet.dir);
-        addHole(sprite, bullet.hitLocal);
+        auto hits = addHole(sprite, bullet.hitLocal).hits;
         m_shake = std::min(1.f, m_shake + kShakeHit);
 
         auto t = sprite->nodeToWorldTransform();
         auto size = sprite->getContentSize();
         auto area = size.width * size.height * std::abs(t.a * t.d - t.b * t.c);
-        auto needed = std::clamp(static_cast<int>(area / kAreaPerHit), 2, 16);
-        auto hits = std::ranges::count_if(m_holes, [&](Hole const& h) {
-            return h.target.data() == sprite;
-        });
+        auto needed = std::clamp(static_cast<int>(area / kAreaPerHit), 2, kMaxHoles);
         if (hits >= needed) shatter(sprite, hit, bullet.dir);
     }
 
-    void World::addHole(CCSprite* target, CCPoint local) {
-        auto sprite = pixelSprite("hole.png"_spr);
-        if (!sprite) return;
-        if (m_holes.size() >= kMaxHoles) {
-            m_holes.front().sprite->removeFromParent();
-            m_holes.erase(m_holes.begin());
+    World::Damage& World::addHole(CCSprite* sprite, CCPoint local) {
+        auto it = std::ranges::find(m_damage, sprite, [](Damage const& d) {
+            return d.sprite.data();
+        });
+        if (it == m_damage.end()) {
+            Damage damage{sprite};
+            if (!sprite->getBatchNode() && sprite->getShaderProgram() == baseProgram()) {
+                damage.program = holeProgram();
+                if (damage.program) sprite->setShaderProgram(damage.program);
+            }
+            it = m_damage.insert(m_damage.end(), std::move(damage));
         }
-        sprite->setScale(pixelScale());
-        sprite->setRotation(90.f * static_cast<int>(rnd(0.f, 4.f)));
-        addChild(sprite, 3);
-        m_holes.push_back({sprite, target, local});
+
+        auto& damage = *it;
+        auto slot = (damage.hits++ % kMaxHoles) * 3;
+        if (!damage.program) return damage;
+        auto t = sprite->nodeToWorldTransform();
+        auto px = kBitPixel / std::sqrt(std::abs(t.a * t.d - t.b * t.c));
+        damage.holes[slot] = local.x;
+        damage.holes[slot + 1] = local.y;
+        damage.holes[slot + 2] = kHoleRadius * px;
+        auto program = damage.program.data();
+        program->use();
+        program->setUniformLocationWith3fv(
+            program->getUniformLocationForName("u_holes"), damage.holes.data(), kMaxHoles
+        );
+        program->setUniformLocationWith1f(program->getUniformLocationForName("u_px"), px);
+        return damage;
     }
 
-    void World::updateHoles() {
-        std::unordered_map<CCSprite*, Target const*> targets;
-        for (auto const& t : m_hittables)
-            targets.emplace(t.sprite, &t);
-        std::erase_if(m_holes, [&](Hole& hole) {
-            if (!hole.target->getParent()) {
-                hole.sprite->removeFromParent();
-                return true;
-            }
-            auto it = targets.find(hole.target.data());
-            hole.sprite->setVisible(false);
-            if (it == targets.end()) return false;
-            auto pos = CCPointApplyAffineTransform(hole.local, it->second->world);
-            hole.sprite->setPosition(pos);
-            hole.sprite->setVisible(it->second->box.containsPoint(pos));
-            return false;
-        });
+    void World::release(Damage& damage) {
+        if (!damage.program) return;
+        if (damage.sprite->getShaderProgram() == damage.program)
+            damage.sprite->setShaderProgram(baseProgram());
+        m_spare.push_back(damage.program);
     }
 
     void World::shatter(CCSprite* sprite, CCPoint hit, CCPoint dir) {
@@ -284,9 +295,9 @@ namespace shootmenus {
             item->setVisible(false);
             item->setEnabled(false);
         }
-        std::erase_if(m_holes, [&](Hole& h) {
-            if (h.target.data() != sprite) return false;
-            h.sprite->removeFromParent();
+        std::erase_if(m_damage, [&](Damage& d) {
+            if (d.sprite.data() != sprite) return false;
+            release(d);
             return true;
         });
         if (sprite->isTextureRectRotated()) return;
@@ -338,6 +349,7 @@ namespace shootmenus {
                         .bounce = 0.3f,
                         .opacity = sprite->getDisplayedOpacity(),
                         .color = sprite->getDisplayedColor(),
+                        .lit = true,
                     },
                     pos
                 );

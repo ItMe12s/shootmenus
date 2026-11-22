@@ -52,21 +52,23 @@ namespace shootmenus {
 
         bool init() override;
         void update(float dt) override;
+        void onExit() override;
+
         void collect(
             cocos2d::CCNode* node, cocos2d::CCAffineTransform const& parent, cocos2d::CCRect const& clip
         );
+        void shake(cocos2d::CCNode* scene, float dt);
         void fire(Cube::Shot const& shot);
         void updateBullets(float dt);
         void impact(Bullet const& bullet);
-        void hitFx(cocos2d::CCPoint pos, cocos2d::CCPoint normal);
         void addHole(cocos2d::CCSprite* target, cocos2d::CCPoint local);
         void updateHoles();
         void shatter(cocos2d::CCSprite* sprite, cocos2d::CCPoint hit, cocos2d::CCPoint dir);
+
+        void hitFx(cocos2d::CCPoint pos, cocos2d::CCPoint normal);
         void addBit(char const* frame, Bit bit, cocos2d::CCPoint pos);
         void addBit(cocos2d::CCSprite* sprite, Bit bit, cocos2d::CCPoint pos);
         void updateBits(float dt);
-        void onExit() override;
-        void shake(cocos2d::CCNode* scene, float dt);
         bool land(
             cocos2d::CCPoint& pos, cocos2d::CCPoint& vel, float prevBottom, float radius, float bounce
         );
@@ -74,10 +76,12 @@ namespace shootmenus {
         geode::Ref<Cube> m_cube;
         std::vector<cocos2d::CCRect> m_platforms;
         std::vector<Target> m_hittables;
+
         std::vector<Bullet> m_bullets;
         geode::Ref<cocos2d::CCDrawNode> m_tracers;
-        std::vector<Bit> m_bits;
+
         std::vector<Hole> m_holes;
+        std::vector<Bit> m_bits;
 
         float m_shake = 0.f;
         geode::Ref<cocos2d::CCNode> m_shaken;

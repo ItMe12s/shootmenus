@@ -43,14 +43,13 @@ namespace shootmenus {
         geode::Ref<cocos2d::CCSprite> m_gun;
         float m_aimAngle = 0.f;
         bool m_left = false;
+        float m_kick = 0.f;
+        float m_bloom = 0.f;
         float m_fireTimer = 0.f;
 
         std::array<bool, kKeys.size()> m_held{};
         bool m_firing = false;
         std::array<geode::ListenerHandle, kKeys.size()> m_keys;
         geode::ListenerHandle m_mouse;
-
-        float m_kick = 0.f;
-        float m_bloom = 0.f;
     };
 } // namespace shootmenus

@@ -19,14 +19,17 @@ namespace shootmenus {
     constexpr float kCeiling = 200.f;
     constexpr float kSpin = 420.f;
     constexpr float kSnap = 720.f;
+
     constexpr float kGunLength = 62.f;
     constexpr CCPoint kGrip{0.350f, 0.633f};
     constexpr CCPoint kShoulder{4.f, -5.f};
-    constexpr float kAimSharpness = 20.f;
     constexpr CCPoint kMuzzle{63.f / 64.f, 1.f - 6.f / 24.f};
     constexpr CCPoint kPort{33.f / 64.f, 1.f - 4.f / 24.f};
-    constexpr float kFireInterval = 0.1f;
+
+    constexpr float kAimSharpness = 20.f;
     constexpr float kFlipDeadzone = 0.15f;
+
+    constexpr float kFireInterval = 0.1f;
     constexpr float kKickBack = 5.f;
     constexpr float kClimb = 0.1f;
     constexpr float kKickRecover = 9.f;

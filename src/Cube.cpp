@@ -21,8 +21,10 @@ namespace shootmenus {
     constexpr float kSnap = 720.f;
     constexpr float kGunLength = 62.f;
     constexpr CCPoint kGrip{0.350f, 0.633f};
-    constexpr CCPoint kShoulder{7.f, -5.f};
-    constexpr float kAimSharpness = 25.f;
+    constexpr CCPoint kShoulder{4.f, -5.f};
+    constexpr float kAimSharpness = 15.f;
+    constexpr CCPoint kMuzzle{63.f / 64.f, 1.f - 6.f / 24.f};
+    constexpr float kFireInterval = 0.1f;
 
     static float approach(float value, float target, float step) {
         return value < target ? std::min(value + step, target) : std::max(value - step, target);
@@ -149,5 +151,18 @@ namespace shootmenus {
         m_pivot->setRotation(-CC_RADIANS_TO_DEGREES(m_aimAngle));
         m_gun->setScaleY(std::abs(m_gun->getScaleY()) * (left ? -1.f : 1.f));
         m_icon->setScaleX(std::abs(m_icon->getScaleX()) * (left ? -1.f : 1.f));
+    }
+
+    std::optional<Cube::Shot> Cube::trigger(float dt) {
+        m_fireTimer = std::max(0.f, m_fireTimer - dt);
+        if (!m_firing || m_fireTimer > 0.f) return std::nullopt;
+        m_fireTimer = kFireInterval;
+
+        auto size = m_gun->getContentSize();
+        CCPoint tip{kMuzzle.x * size.width, kMuzzle.y * size.height};
+        auto origin = m_gun->convertToWorldSpace(tip);
+        auto dir = (m_gun->convertToWorldSpace(tip + CCPoint{1.f, 0.f}) - origin).normalize();
+
+        return Shot{origin, dir};
     }
 } // namespace shootmenus

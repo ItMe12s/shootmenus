@@ -3,18 +3,21 @@
 #include <Geode/Geode.hpp>
 #include <Geode/utils/Keyboard.hpp>
 #include <array>
+#include <optional>
 #include <span>
 
 namespace shootmenus {
     class Cube : public cocos2d::CCNode {
     public:
+        struct Shot {
+            cocos2d::CCPoint origin;
+            cocos2d::CCPoint dir;
+        };
+
         static Cube* create();
         void move(float dt, std::span<cocos2d::CCRect const> platforms);
         void aim(cocos2d::CCPoint target, float dt);
-
-        float m_aimAngle = 0.f;
-        geode::Ref<cocos2d::CCNode> m_pivot;
-        geode::Ref<cocos2d::CCSprite> m_gun;
+        std::optional<Shot> trigger(float dt);
 
     private:
         enum Key : size_t {
@@ -33,6 +36,11 @@ namespace shootmenus {
         cocos2d::CCPoint m_velocity;
         bool m_grounded = false;
         float m_iconAngle = 0.f;
+
+        geode::Ref<cocos2d::CCNode> m_pivot;
+        geode::Ref<cocos2d::CCSprite> m_gun;
+        float m_aimAngle = 0.f;
+        float m_fireTimer = 0.f;
 
         std::array<bool, kKeys.size()> m_held{};
         bool m_firing = false;

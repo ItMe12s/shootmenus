@@ -64,6 +64,7 @@ namespace shootmenus {
         setVisible(!inLevel);
         auto scene = CCDirector::get()->getRunningScene();
         if (inLevel || !scene || typeinfo_cast<CCTransitionScene*>(scene)) return;
+        dt = std::min(dt, 1.f / 30.f);
 
         m_platforms.clear();
         m_hittables.clear();
@@ -76,8 +77,8 @@ namespace shootmenus {
         for (auto const& box : m_platforms)
             m_debug->drawRect(box, {0, 0, 0, 0}, 1.f, {0.2f, 1, 0.2f, 1});
 
-        m_cube->move(std::min(dt, 1.f / 30.f), m_platforms);
-        m_cube->aim(getMousePos());
+        m_cube->move(dt, m_platforms);
+        m_cube->aim(getMousePos(), dt);
     }
 
     void World::collect(CCNode* node, CCRect const& clip) {

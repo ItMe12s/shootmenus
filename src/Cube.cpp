@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <numbers>
 
 using namespace geode::prelude;
 
@@ -21,6 +22,7 @@ namespace shootmenus {
     constexpr float kGunLength = 62.f;
     constexpr CCPoint kGrip{0.350f, 0.633f};
     constexpr CCPoint kShoulder{7.f, -5.f};
+    constexpr float kAimSharpness = 25.f;
 
     static float approach(float value, float target, float step) {
         return value < target ? std::min(value + step, target) : std::max(value - step, target);
@@ -136,12 +138,15 @@ namespace shootmenus {
         m_icon->setRotation(m_iconAngle);
     }
 
-    void Cube::aim(CCPoint target) {
-        auto local = convertToNodeSpace(target);
-        auto left = local.x < 0.f;
+    void Cube::aim(CCPoint target, float dt) {
+        auto delta = convertToNodeSpace(target) - m_pivot->getPosition();
+        auto goal = std::atan2(delta.y, delta.x);
+        auto turn = std::remainder(goal - m_aimAngle, 2.f * std::numbers::pi_v<float>);
+        m_aimAngle += turn * (1.f - std::exp(-kAimSharpness * dt));
+
+        auto left = std::cos(m_aimAngle) < 0.f;
         m_pivot->setPosition({left ? -kShoulder.x : kShoulder.x, kShoulder.y});
-        auto delta = local - m_pivot->getPosition();
-        m_pivot->setRotation(-CC_RADIANS_TO_DEGREES(std::atan2(delta.y, delta.x)));
+        m_pivot->setRotation(-CC_RADIANS_TO_DEGREES(m_aimAngle));
         m_gun->setScaleY(std::abs(m_gun->getScaleY()) * (left ? -1.f : 1.f));
         m_icon->setScaleX(std::abs(m_icon->getScaleX()) * (left ? -1.f : 1.f));
     }

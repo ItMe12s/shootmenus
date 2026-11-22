@@ -10,8 +10,9 @@ namespace shootmenus {
     public:
         static Cube* create();
         void move(float dt, std::span<cocos2d::CCRect const> platforms);
-        void aim(cocos2d::CCPoint target);
+        void aim(cocos2d::CCPoint target, float dt);
 
+        float m_aimAngle = 0.f;
         geode::Ref<cocos2d::CCNode> m_pivot;
         geode::Ref<cocos2d::CCSprite> m_gun;
 

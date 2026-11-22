@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <cmath>
 #include <optional>
+#include <ranges>
+#include <unordered_map>
 #include <utility>
 
 using namespace geode::prelude;
@@ -14,6 +16,9 @@ namespace shootmenus {
     constexpr float kRange = 1500.f;
     constexpr float kBulletSpeed = 3200.f;
     constexpr size_t kMaxBits = 400;
+    constexpr size_t kMaxHoles = 300;
+    constexpr float kBitPixel = 1.f;
+    constexpr float kAreaPerHit = 120.f;
 
     static CCRect localRect(CCNode* node) {
         auto size = node->getContentSize();
@@ -37,6 +42,12 @@ namespace shootmenus {
 
     static CCPoint rotate(CCPoint v, float degrees) {
         return v.rotateByAngle(CCPointZero, CC_DEGREES_TO_RADIANS(degrees));
+    }
+
+    static CCSprite* pixelSprite(char const* frame) {
+        auto sprite = CCSprite::create(frame);
+        if (sprite) sprite->getTexture()->setAliasTexParameters();
+        return sprite;
     }
 
     World* World::create() {
@@ -94,6 +105,7 @@ namespace shootmenus {
         if (auto shot = m_cube->trigger(dt)) fire(*shot);
         updateBullets(dt);
         updateBits(dt);
+        updateHoles();
     }
 
     void World::collect(CCNode* node, CCRect const& clip) {
@@ -184,27 +196,37 @@ namespace shootmenus {
 
     void World::impact(Bullet const& bullet) {
         auto sprite = bullet.target.data();
-        if (!sprite || !sprite->getParent()) return;
-        hitFx(sprite->convertToWorldSpace(bullet.hitLocal), -bullet.dir);
+        if (!sprite || !sprite->getParent() || !sprite->isVisible()) return;
+        auto hit = sprite->convertToWorldSpace(bullet.hitLocal);
+        hitFx(hit, -bullet.dir);
+        addHole(sprite, bullet.hitLocal);
+    
+        auto t = sprite->nodeToWorldTransform();
+        auto size = sprite->getContentSize();
+        auto area = size.width * size.height * std::abs(t.a * t.d - t.b * t.c);
+        auto needed = std::clamp(static_cast<int>(area / kAreaPerHit), 2, 16);
+        auto hits = std::ranges::count_if(m_holes, [&](Hole const& h) { return h.target.data() == sprite; });
+        if (hits >= needed) shatter(sprite, hit, bullet.dir);
     }
 
     void World::addBit(char const* frame, Bit bit, CCPoint pos) {
+        auto sprite = pixelSprite(frame);
+        if (!sprite) return;
+        bit.scale *= CC_CONTENT_SCALE_FACTOR() * kBitPixel;
+        bit.growth *= CC_CONTENT_SCALE_FACTOR() * kBitPixel;
+        sprite->setScale(bit.scale);
+        sprite->setRotation(rnd(0.f, 360.f));
+        addBit(sprite, bit, pos);
+    }
+    
+    void World::addBit(CCSprite* sprite, Bit bit, CCPoint pos) {
         if (m_bits.size() >= kMaxBits) return;
-        bit.sprite = CCSprite::create(frame);
-
-        if (!bit.sprite) return;
-        bit.scale *= CC_CONTENT_SCALE_FACTOR();
-        bit.growth *= CC_CONTENT_SCALE_FACTOR();
-
-        bit.sprite->getTexture()->setAliasTexParameters();
-        bit.sprite->setPosition(pos);
-        bit.sprite->setScale(bit.scale);
-        bit.sprite->setRotation(rnd(0.f, 360.f));
-        bit.sprite->setOpacity(bit.opacity);
-        bit.sprite->setColor(bit.color);
-
-        if (bit.additive) bit.sprite->setBlendFunc({GL_SRC_ALPHA, GL_ONE});
-        addChild(bit.sprite, 6);
+        bit.sprite = sprite;
+        sprite->setPosition(pos);
+        sprite->setOpacity(bit.opacity);
+        sprite->setColor(bit.color);
+        if (bit.additive) sprite->setBlendFunc({GL_SRC_ALPHA, GL_ONE});
+        addChild(sprite, 6);
         m_bits.push_back(bit);
     }
 
@@ -258,7 +280,7 @@ namespace shootmenus {
             }
             else {
                 bit.sprite->setRotation(bit.sprite->getRotation() + bit.spin * dt);
-                bit.sprite->setScale(bit.sprite->getScale() + bit.growth * dt);
+                if (bit.growth != 0.f) bit.sprite->setScale(bit.sprite->getScale() + bit.growth * dt);
             }
             return false;
         });
@@ -306,6 +328,94 @@ namespace shootmenus {
                 },
                 pos
             );
+        }
+    }
+
+    void World::addHole(CCSprite* target, CCPoint local) {
+        auto sprite = pixelSprite("hole.png"_spr);
+        if (!sprite) return;
+        if (m_holes.size() >= kMaxHoles) {
+            m_holes.front().sprite->removeFromParent();
+            m_holes.erase(m_holes.begin());
+        }
+        sprite->setScale(CC_CONTENT_SCALE_FACTOR() * kBitPixel);
+        sprite->setRotation(90.f * static_cast<int>(rnd(0.f, 4.f)));
+        addChild(sprite, 3);
+        m_holes.push_back({sprite, target, local});
+    }
+
+    void World::updateHoles() {
+        std::unordered_map<CCSprite*, CCRect> boxes;
+        for (auto const& t : m_hittables) boxes.emplace(t.sprite, t.box);
+        std::erase_if(m_holes, [&](Hole& hole) {
+            if (!hole.target->getParent()) {
+                hole.sprite->removeFromParent();
+                return true;
+            }
+            auto pos = hole.target->convertToWorldSpace(hole.local);
+            auto it = boxes.find(hole.target.data());
+            hole.sprite->setVisible(it != boxes.end() && it->second.containsPoint(pos));
+            hole.sprite->setPosition(pos);
+            return false;
+        });
+    }
+
+    void World::shatter(CCSprite* sprite, CCPoint hit, CCPoint dir) {
+        sprite->setVisible(false);
+        if (auto item = typeinfo_cast<CCMenuItemSprite*>(sprite->getParent());
+            item && item->getNormalImage() == sprite) {
+            item->setVisible(false);
+            item->setEnabled(false);
+        }
+        std::erase_if(m_holes, [&](Hole& h) {
+            if (h.target.data() != sprite) return false;
+            h.sprite->removeFromParent();
+            return true;
+        });
+        if (sprite->isTextureRectRotated()) return;
+
+        auto rect = sprite->getTextureRect();
+        auto t = sprite->nodeToWorldTransform();
+        auto sx = std::hypot(t.a, t.b);
+        auto sy = std::hypot(t.c, t.d);
+        auto rotation = -CC_RADIANS_TO_DEGREES(std::atan2(t.b, t.a));
+        auto cols = std::clamp(static_cast<int>(rect.size.width * sx / 12.f), 1, 6);
+        auto rows = std::clamp(static_cast<int>(rect.size.height * sy / 12.f), 1, 6);
+        CCSize cell{rect.size.width / cols, rect.size.height / rows};
+
+        for (int j = 0; j < rows; j++) {
+            for (int i = 0; i < cols; i++) {
+                auto tx = sprite->isFlipX() ? cols - 1 - i : i;
+                auto ty = sprite->isFlipY() ? j : rows - 1 - j;
+                auto piece = CCSprite::createWithTexture(
+                    sprite->getTexture(),
+                    {rect.origin.x + tx * cell.width, rect.origin.y + ty * cell.height, cell.width, cell.height}
+                );
+                if (!piece) continue;
+                piece->setFlipX(sprite->isFlipX());
+                piece->setFlipY(sprite->isFlipY());
+                piece->setScaleX(sx);
+                piece->setScaleY(sy);
+                piece->setRotation(rotation);
+                piece->setBlendFunc(sprite->getBlendFunc());
+                auto pos = sprite->convertToWorldSpace(
+                    sprite->getOffsetPosition() + CCPoint{(i + 0.5f) * cell.width, (j + 0.5f) * cell.height}
+                );
+                auto away = pos - hit;
+                auto falloff = 1.f / (1.f + away.getLength() / 40.f);
+                addBit(piece, {
+                    .velocity = dir * rnd(80.f, 260.f) * falloff + away.normalize() * rnd(60.f, 180.f) * falloff +
+                        CCPoint{rnd(-30.f, 30.f), rnd(30.f, 130.f)},
+                    .spin = rnd(-400.f, 400.f),
+                    .life = rnd(4.f, 6.f),
+                    .fade = 1.f,
+                    .gravity = 1300.f,
+                    .drag = 0.25f,
+                    .bounce = 0.3f,
+                    .opacity = sprite->getDisplayedOpacity(),
+                    .color = sprite->getDisplayedColor(),
+                }, pos);
+            }
         }
     }
 } // namespace shootmenus

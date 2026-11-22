@@ -1,5 +1,7 @@
 #include "Cube.hpp"
 
+#include "Util.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <numbers>
@@ -189,7 +191,7 @@ namespace shootmenus {
         auto origin = m_gun->convertToWorldSpace(tip);
         auto dir = (m_gun->convertToWorldSpace(tip + CCPoint{1.f, 0.f}) - origin).normalize();
 
-        auto spread = (kSpread + m_bloom * kBloomSpread) * utils::random::generate(-1.f, 1.f);
+        auto spread = (kSpread + m_bloom * kBloomSpread) * rnd(-1.f, 1.f);
         dir = dir.rotateByAngle(CCPointZero, spread);
 
         m_kick = 1.f;

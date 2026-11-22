@@ -106,6 +106,16 @@ namespace shootmenus {
             return CCRect{pos.x - kHalf, pos.y - kHalf, kHalf * 2.f, kHalf * 2.f};
         };
 
+        for (auto const& p : platforms) {
+            if (!overlaps(box(), p)) continue;
+            auto up = p.getMaxY() + kHalf - pos.y;
+            auto down = p.getMinY() - kHalf - pos.y;
+            auto left = p.getMinX() - kHalf - pos.x;
+            auto right = p.getMaxX() + kHalf - pos.x;
+            if (std::min(up, -down) <= std::min(-left, right)) pos.y += up <= -down ? up : down;
+            else pos.x += -left < right ? left : right;
+        }
+
         auto dx = m_velocity.x * dt;
         pos.x += dx;
         for (auto const& p : platforms) {

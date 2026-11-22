@@ -24,7 +24,7 @@ namespace shootmenus {
     constexpr float kFlashTime = 0.045f;
 
     constexpr float kShakeDecay = 5.f;
-    constexpr float kShakeAmp = 4.f;
+    constexpr float kShakeAmp = 2.f;
     constexpr float kShakeShot = 0.25f;
     constexpr float kShakeHit = 0.06f;
     constexpr float kShakeShatter = 0.6f;

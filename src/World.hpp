@@ -15,6 +15,7 @@ namespace shootmenus {
         struct Target {
             cocos2d::CCSprite* sprite;
             cocos2d::CCRect box;
+            cocos2d::CCAffineTransform world;
         };
 
         struct Bullet {
@@ -51,7 +52,9 @@ namespace shootmenus {
 
         bool init() override;
         void update(float dt) override;
-        void collect(cocos2d::CCNode* node, cocos2d::CCRect const& clip);
+        void collect(
+            cocos2d::CCNode* node, cocos2d::CCAffineTransform const& parent, cocos2d::CCRect const& clip
+        );
         void fire(Cube::Shot const& shot);
         void updateBullets(float dt);
         void impact(Bullet const& bullet);

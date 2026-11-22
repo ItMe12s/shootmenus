@@ -16,7 +16,7 @@
 		"source": "https://github.com/ItMe12s/shootmenus"
 	},
 	"resources": {
-		"sprites": [
+		"files": [
 			"resources/*.png"
 		]
 	},

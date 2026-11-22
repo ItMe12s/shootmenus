@@ -24,6 +24,7 @@ namespace shootmenus {
     constexpr CCPoint kShoulder{4.f, -5.f};
     constexpr float kAimSharpness = 20.f;
     constexpr CCPoint kMuzzle{63.f / 64.f, 1.f - 6.f / 24.f};
+    constexpr CCPoint kPort{33.f / 64.f, 1.f - 4.f / 24.f};
     constexpr float kFireInterval = 0.1f;
     constexpr float kFlipDeadzone = 0.15f;
 
@@ -167,6 +168,10 @@ namespace shootmenus {
         auto origin = m_gun->convertToWorldSpace(tip);
         auto dir = (m_gun->convertToWorldSpace(tip + CCPoint{1.f, 0.f}) - origin).normalize();
 
-        return Shot{origin, dir};
+        CCPoint portLocal{kPort.x * size.width, kPort.y * size.height};
+        auto port = m_gun->convertToWorldSpace(portLocal);
+        auto up = (m_gun->convertToWorldSpace(portLocal + CCPoint{0.f, 1.f}) - port).normalize();
+
+        return Shot{origin, dir, port, up};
     }
 } // namespace shootmenus

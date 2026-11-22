@@ -98,7 +98,10 @@ namespace shootmenus {
         m_platforms.clear();
         m_hittables.clear();
         auto win = CCDirector::get()->getWinSize();
-        collect(scene, CCAffineTransformIdentity, {0.f, 0.f, win.width, win.height});
+        auto base = scene->nodeToParentTransform();
+        base.tx -= getPositionX();
+        base.ty -= getPositionY();
+        collect(scene, base, {0.f, 0.f, win.width, win.height});
 
         m_cube->move(dt, m_platforms);
         m_cube->aim(getMousePos(), dt);

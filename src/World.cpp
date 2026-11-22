@@ -193,12 +193,16 @@ namespace shootmenus {
         bit.sprite = CCSprite::create(frame);
 
         if (!bit.sprite) return;
+        bit.scale *= CC_CONTENT_SCALE_FACTOR();
+        bit.growth *= CC_CONTENT_SCALE_FACTOR();
+
         bit.sprite->getTexture()->setAliasTexParameters();
         bit.sprite->setPosition(pos);
         bit.sprite->setScale(bit.scale);
         bit.sprite->setRotation(rnd(0.f, 360.f));
         bit.sprite->setOpacity(bit.opacity);
         bit.sprite->setColor(bit.color);
+
         if (bit.additive) bit.sprite->setBlendFunc({GL_SRC_ALPHA, GL_ONE});
         addChild(bit.sprite, 6);
         m_bits.push_back(bit);

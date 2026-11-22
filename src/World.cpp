@@ -98,7 +98,7 @@ namespace shootmenus {
         m_platforms.clear();
         m_hittables.clear();
         auto win = CCDirector::get()->getWinSize();
-        collect(scene, scene->nodeToParentTransform(), {0.f, 0.f, win.width, win.height});
+        collect(scene, CCAffineTransformIdentity, {0.f, 0.f, win.width, win.height});
 
         m_cube->move(dt, m_platforms);
         m_cube->aim(getMousePos(), dt);
@@ -267,7 +267,7 @@ namespace shootmenus {
             hole.sprite->setVisible(false);
             if (it == targets.end()) return false;
             auto pos = CCPointApplyAffineTransform(hole.local, it->second->world);
-            hole.sprite->setPosition(pos - getPosition());
+            hole.sprite->setPosition(pos);
             hole.sprite->setVisible(it->second->box.containsPoint(pos));
             return false;
         });

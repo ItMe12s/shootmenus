@@ -81,7 +81,8 @@ namespace shootmenus {
             });
         }
         m_mouse = MouseInputEvent().listen([this](MouseInputData& data) {
-            if (data.button == MouseInputData::Button::Right)
+            auto left = Mod::get()->getSettingValue<bool>("left-click");
+            if (data.button == (left ? MouseInputData::Button::Left : MouseInputData::Button::Right))
                 m_firing = data.action == MouseInputData::Action::Press;
             return ListenerResult::Propagate;
         });

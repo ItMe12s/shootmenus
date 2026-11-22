@@ -26,6 +26,12 @@
 			"name": "Spawn/Remove Cube",
 			"description": "At your mouse position.",
 			"default": "T"
+		},
+		"left-click": {
+			"type": "bool",
+			"name": "Use left click instead",
+			"description": "Very innovative settings.",
+			"default": false
 		}
 	}
 }

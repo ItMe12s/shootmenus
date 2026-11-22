@@ -23,11 +23,11 @@ namespace shootmenus {
 
     constexpr float kFlashTime = 0.045f;
 
-    constexpr float kShakeDecay = 5.f;
+    constexpr float kShakeDecay = 3.f;
     constexpr float kShakeAmp = 2.f;
     constexpr float kShakeShot = 0.25f;
-    constexpr float kShakeHit = 0.06f;
-    constexpr float kShakeShatter = 0.6f;
+    constexpr float kShakeHit = 0.1f;
+    constexpr float kShakeShatter = 0.5f;
 
     static CCRect localRect(CCNode* node) {
         auto size = node->getContentSize();
@@ -218,7 +218,7 @@ namespace shootmenus {
             flash->setScaleY(scale * rnd(0.8f, 1.1f) * (utils::random::chance(0.5) ? -1.f : 1.f));
             addBit(flash, {.life = kFlashTime, .fade = kFlashTime, .additive = true}, shot.origin);
         }
-        m_shake = std::min(1.f, m_shake + kShakeShot);
+        m_shake = std::max(m_shake, kShakeShot);
     }
 
     void World::updateBullets(float dt) {
@@ -243,7 +243,7 @@ namespace shootmenus {
         if (!sprite || !sprite->getParent() || !sprite->isVisible()) return;
         auto hit = sprite->convertToWorldSpace(bullet.hitLocal);
         hitFx(hit, -bullet.dir);
-        m_shake = std::min(1.f, m_shake + kShakeHit);
+        m_shake = std::max(m_shake, kShakeHit);
 
         auto t = sprite->nodeToWorldTransform();
         auto det = std::abs(t.a * t.d - t.b * t.c);

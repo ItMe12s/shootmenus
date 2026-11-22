@@ -31,7 +31,7 @@ namespace shootmenus {
     constexpr float kAimSharpness = 20.f;
     constexpr float kFlipDeadzone = 0.15f;
 
-    constexpr float kFireInterval = 0.1f;
+    constexpr float kFireInterval = 0.07f;
     constexpr float kKickBack = 5.f;
     constexpr float kClimb = 0.1f;
     constexpr float kKickRecover = 9.f;

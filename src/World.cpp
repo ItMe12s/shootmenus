@@ -19,9 +19,7 @@ namespace shootmenus {
     constexpr float kAreaPerHit = 120.f;
 
     constexpr float kShardSize = 12.f;
-    constexpr int kMaxCuts = 6;
-    constexpr float kCutJitter = 0.35f;
-    constexpr float kCutPull = 0.3f;
+    constexpr int kMaxShards = 6;
 
     constexpr float kFlashTime = 0.045f;
 
@@ -304,44 +302,28 @@ namespace shootmenus {
             release(d);
             return true;
         });
+        if (sprite->isTextureRectRotated()) return;
+
         auto rect = sprite->getTextureRect();
-        auto rotated = sprite->isTextureRectRotated();
         auto t = sprite->nodeToWorldTransform();
         auto sx = std::hypot(t.a, t.b);
         auto sy = std::hypot(t.c, t.d);
         auto rotation = -CC_RADIANS_TO_DEGREES(std::atan2(t.b, t.a));
-        auto cols = std::clamp(static_cast<int>(rect.size.width * sx / kShardSize), 1, kMaxCuts);
-        auto rows = std::clamp(static_cast<int>(rect.size.height * sy / kShardSize), 1, kMaxCuts);
-        auto local = sprite->convertToNodeSpace(hit) - sprite->getOffsetPosition();
+        auto cols = std::clamp(static_cast<int>(rect.size.width * sx / kShardSize), 1, kMaxShards);
+        auto rows = std::clamp(static_cast<int>(rect.size.height * sy / kShardSize), 1, kMaxShards);
+        CCSize cell{rect.size.width / cols, rect.size.height / rows};
 
-        auto cuts = [](float length, int count, float focus) {
-            std::vector<float> at(count + 1, 0.f);
-            at[count] = length;
-            for (int k = 1; k < count; k++) {
-                auto even = (k + rnd(-kCutJitter, kCutJitter)) * length / count;
-                at[k] = std::min(std::round(even + (focus - even) * kCutPull), length);
-            }
-            return at;
-        };
-
-        auto xs = cuts(rect.size.width, cols, std::clamp(local.x, 0.f, rect.size.width));
-        for (int i = 0; i < cols; i++) {
-            auto ys = cuts(rect.size.height, rows, std::clamp(local.y, 0.f, rect.size.height));
-            for (int j = 0; j < rows; j++) {
-                CCRect cell{xs[i], ys[j], xs[i + 1] - xs[i], ys[j + 1] - ys[j]};
-                if (cell.size.width < 1.f || cell.size.height < 1.f) continue;
-                auto u = sprite->isFlipX() ? rect.size.width - cell.getMaxX() : cell.getMinX();
-                auto v = sprite->isFlipY() ? rect.size.height - cell.getMaxY() : cell.getMinY();
-                auto at = rect.origin +
-                    (rotated ? CCPoint{v, u} : CCPoint{u, rect.size.height - v - cell.size.height});
-                auto frame = CCSpriteFrame::createWithTexture(
+        for (int j = 0; j < rows; j++) {
+            for (int i = 0; i < cols; i++) {
+                auto tx = sprite->isFlipX() ? cols - 1 - i : i;
+                auto ty = sprite->isFlipY() ? j : rows - 1 - j;
+                auto piece = CCSprite::createWithTexture(
                     sprite->getTexture(),
-                    {at.x, at.y, cell.size.width, cell.size.height},
-                    rotated,
-                    CCPointZero,
-                    cell.size
+                    {rect.origin.x + tx * cell.width,
+                     rect.origin.y + ty * cell.height,
+                     cell.width,
+                     cell.height}
                 );
-                auto piece = frame ? CCSprite::createWithSpriteFrame(frame) : nullptr;
                 if (!piece) continue;
                 piece->setFlipX(sprite->isFlipX());
                 piece->setFlipY(sprite->isFlipY());
@@ -350,7 +332,8 @@ namespace shootmenus {
                 piece->setRotation(rotation);
                 piece->setBlendFunc(sprite->getBlendFunc());
                 auto pos = sprite->convertToWorldSpace(
-                    sprite->getOffsetPosition() + CCPoint{cell.getMidX(), cell.getMidY()}
+                    sprite->getOffsetPosition() +
+                    CCPoint{(i + 0.5f) * cell.width, (j + 0.5f) * cell.height}
                 );
                 auto away = pos - hit;
                 auto falloff = 1.f / (1.f + away.getLength() / 40.f);

@@ -133,7 +133,9 @@ namespace shootmenus {
                 pos.y = p.getMaxY() + kHalf;
                 m_grounded = true;
             }
-            else pos.y = p.getMinY() - kHalf;
+            else {
+                pos.y = p.getMinY() - kHalf;
+            }
             m_velocity.y = 0.f;
         }
         if (pos.y <= kHalf) {
@@ -144,9 +146,12 @@ namespace shootmenus {
         pos.y = std::min(pos.y, win.height + kCeiling);
         setPosition(pos);
 
-        if (m_grounded)
+        if (m_grounded) {
             m_iconAngle = approach(m_iconAngle, std::round(m_iconAngle / 90.f) * 90.f, kSnap * dt);
-        else m_iconAngle += (m_velocity.x < 0.f ? -1.f : 1.f) * kSpin * dt;
+        }
+        else {
+            m_iconAngle += (m_velocity.x < 0.f ? -1.f : 1.f) * kSpin * dt;
+        }
         m_icon->setRotation(m_iconAngle);
     }
 

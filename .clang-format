@@ -60,6 +60,7 @@ Cpp11BracedListStyle: true
 
 DeriveLineEnding: false
 UseCRLF: false
+InsertNewlineAtEOF: true
 UseTab: Never
 
 PointerAlignment: Left

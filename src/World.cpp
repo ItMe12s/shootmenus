@@ -281,7 +281,6 @@ namespace shootmenus {
         pos.y = ground + radius;
         vel.y = vel.y < -60.f ? -vel.y * bounce : 0.f;
         vel.x *= 0.85f;
-
         return true;
     }
 

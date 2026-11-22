@@ -21,6 +21,9 @@ namespace shootmenus {
     constexpr float kAreaPerHit = 120.f;
     constexpr float kShakeDecay = 5.f;
     constexpr float kShakeAmp = 4.f;
+    constexpr float kShakeShot = 0.25f;
+    constexpr float kShakeHit = 0.06f;
+    constexpr float kShakeShatter = 0.6f;
     constexpr float kFlashTime = 0.045f;
 
     static CCRect localRect(CCNode* node) {
@@ -198,6 +201,7 @@ namespace shootmenus {
             flash->setScaleY(scale * rnd(0.8f, 1.1f) * (rnd(0.f, 1.f) < 0.5f ? -1.f : 1.f));
             addBit(flash, {.life = kFlashTime, .fade = kFlashTime, .additive = true}, shot.origin);
         }
+        m_shake = std::min(1.f, m_shake + kShakeShot);
     }
 
     void World::updateBullets(float dt) {
@@ -226,6 +230,7 @@ namespace shootmenus {
         auto hit = sprite->convertToWorldSpace(bullet.hitLocal);
         hitFx(hit, -bullet.dir);
         addHole(sprite, bullet.hitLocal);
+        m_shake = std::min(1.f, m_shake + kShakeHit);
 
         auto t = sprite->nodeToWorldTransform();
         auto size = sprite->getContentSize();
@@ -381,12 +386,13 @@ namespace shootmenus {
             auto pos = hole.target->convertToWorldSpace(hole.local);
             auto it = boxes.find(hole.target.data());
             hole.sprite->setVisible(it != boxes.end() && it->second.containsPoint(pos));
-            hole.sprite->setPosition(pos);
+            hole.sprite->setPosition(pos - getPosition());
             return false;
         });
     }
 
     void World::shatter(CCSprite* sprite, CCPoint hit, CCPoint dir) {
+        m_shake = std::min(1.f, m_shake + kShakeShatter);
         sprite->setVisible(false);
         if (auto item = typeinfo_cast<CCMenuItemSprite*>(sprite->getParent());
             item && item->getNormalImage() == sprite) {

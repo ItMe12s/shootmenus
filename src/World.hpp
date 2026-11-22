@@ -68,7 +68,7 @@ namespace shootmenus {
         void fire(Cube::Shot const& shot);
         void updateBullets(float dt);
         void impact(Bullet const& bullet);
-        Damage& addHole(cocos2d::CCSprite* sprite, cocos2d::CCPoint local);
+        Damage& addHole(cocos2d::CCSprite* sprite, cocos2d::CCPoint local, float px);
         void release(Damage& damage);
         geode::Ref<cocos2d::CCGLProgram> holeProgram();
         void shatter(cocos2d::CCSprite* sprite, cocos2d::CCPoint hit, cocos2d::CCPoint dir);

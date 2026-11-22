@@ -18,6 +18,11 @@ namespace shootmenus {
     constexpr float kHoleRadius = 2.f;
     constexpr float kAreaPerHit = 120.f;
 
+    constexpr float kShardSize = 12.f;
+    constexpr int kMaxCuts = 6;
+    constexpr float kCutJitter = 0.35f;
+    constexpr float kCutPull = 0.3f;
+
     constexpr float kFlashTime = 0.045f;
 
     constexpr float kShakeDecay = 5.f;
@@ -240,17 +245,18 @@ namespace shootmenus {
         if (!sprite || !sprite->getParent() || !sprite->isVisible()) return;
         auto hit = sprite->convertToWorldSpace(bullet.hitLocal);
         hitFx(hit, -bullet.dir);
-        auto hits = addHole(sprite, bullet.hitLocal).hits;
         m_shake = std::min(1.f, m_shake + kShakeHit);
 
         auto t = sprite->nodeToWorldTransform();
+        auto det = std::abs(t.a * t.d - t.b * t.c);
+        auto hits = addHole(sprite, bullet.hitLocal, kBitPixel / std::sqrt(det)).hits;
         auto size = sprite->getContentSize();
-        auto area = size.width * size.height * std::abs(t.a * t.d - t.b * t.c);
-        auto needed = std::clamp(static_cast<int>(area / kAreaPerHit), 2, kMaxHoles);
+        auto needed =
+            std::clamp(static_cast<int>(size.width * size.height * det / kAreaPerHit), 2, kMaxHoles);
         if (hits >= needed) shatter(sprite, hit, bullet.dir);
     }
 
-    World::Damage& World::addHole(CCSprite* sprite, CCPoint local) {
+    World::Damage& World::addHole(CCSprite* sprite, CCPoint local, float px) {
         auto it = std::ranges::find(m_damage, sprite, [](Damage const& d) {
             return d.sprite.data();
         });
@@ -266,8 +272,6 @@ namespace shootmenus {
         auto& damage = *it;
         auto slot = (damage.hits++ % kMaxHoles) * 3;
         if (!damage.program) return damage;
-        auto t = sprite->nodeToWorldTransform();
-        auto px = kBitPixel / std::sqrt(std::abs(t.a * t.d - t.b * t.c));
         damage.holes[slot] = local.x;
         damage.holes[slot + 1] = local.y;
         damage.holes[slot + 2] = kHoleRadius * px;
@@ -300,28 +304,44 @@ namespace shootmenus {
             release(d);
             return true;
         });
-        if (sprite->isTextureRectRotated()) return;
-
         auto rect = sprite->getTextureRect();
+        auto rotated = sprite->isTextureRectRotated();
         auto t = sprite->nodeToWorldTransform();
         auto sx = std::hypot(t.a, t.b);
         auto sy = std::hypot(t.c, t.d);
         auto rotation = -CC_RADIANS_TO_DEGREES(std::atan2(t.b, t.a));
-        auto cols = std::clamp(static_cast<int>(rect.size.width * sx / 12.f), 1, 6);
-        auto rows = std::clamp(static_cast<int>(rect.size.height * sy / 12.f), 1, 6);
-        CCSize cell{rect.size.width / cols, rect.size.height / rows};
+        auto cols = std::clamp(static_cast<int>(rect.size.width * sx / kShardSize), 1, kMaxCuts);
+        auto rows = std::clamp(static_cast<int>(rect.size.height * sy / kShardSize), 1, kMaxCuts);
+        auto local = sprite->convertToNodeSpace(hit) - sprite->getOffsetPosition();
 
-        for (int j = 0; j < rows; j++) {
-            for (int i = 0; i < cols; i++) {
-                auto tx = sprite->isFlipX() ? cols - 1 - i : i;
-                auto ty = sprite->isFlipY() ? j : rows - 1 - j;
-                auto piece = CCSprite::createWithTexture(
+        auto cuts = [](float length, int count, float focus) {
+            std::vector<float> at(count + 1, 0.f);
+            at[count] = length;
+            for (int k = 1; k < count; k++) {
+                auto even = (k + rnd(-kCutJitter, kCutJitter)) * length / count;
+                at[k] = std::min(std::round(even + (focus - even) * kCutPull), length);
+            }
+            return at;
+        };
+
+        auto xs = cuts(rect.size.width, cols, std::clamp(local.x, 0.f, rect.size.width));
+        for (int i = 0; i < cols; i++) {
+            auto ys = cuts(rect.size.height, rows, std::clamp(local.y, 0.f, rect.size.height));
+            for (int j = 0; j < rows; j++) {
+                CCRect cell{xs[i], ys[j], xs[i + 1] - xs[i], ys[j + 1] - ys[j]};
+                if (cell.size.width < 1.f || cell.size.height < 1.f) continue;
+                auto u = sprite->isFlipX() ? rect.size.width - cell.getMaxX() : cell.getMinX();
+                auto v = sprite->isFlipY() ? rect.size.height - cell.getMaxY() : cell.getMinY();
+                auto at = rect.origin +
+                    (rotated ? CCPoint{v, u} : CCPoint{u, rect.size.height - v - cell.size.height});
+                auto frame = CCSpriteFrame::createWithTexture(
                     sprite->getTexture(),
-                    {rect.origin.x + tx * cell.width,
-                     rect.origin.y + ty * cell.height,
-                     cell.width,
-                     cell.height}
+                    {at.x, at.y, cell.size.width, cell.size.height},
+                    rotated,
+                    CCPointZero,
+                    cell.size
                 );
+                auto piece = frame ? CCSprite::createWithSpriteFrame(frame) : nullptr;
                 if (!piece) continue;
                 piece->setFlipX(sprite->isFlipX());
                 piece->setFlipY(sprite->isFlipY());
@@ -330,8 +350,7 @@ namespace shootmenus {
                 piece->setRotation(rotation);
                 piece->setBlendFunc(sprite->getBlendFunc());
                 auto pos = sprite->convertToWorldSpace(
-                    sprite->getOffsetPosition() +
-                    CCPoint{(i + 0.5f) * cell.width, (j + 0.5f) * cell.height}
+                    sprite->getOffsetPosition() + CCPoint{cell.getMidX(), cell.getMidY()}
                 );
                 auto away = pos - hit;
                 auto falloff = 1.f / (1.f + away.getLength() / 40.f);

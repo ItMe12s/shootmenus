@@ -20,7 +20,7 @@ namespace shootmenus {
     constexpr float kSnap = 720.f;
     constexpr float kGunLength = 62.f;
     constexpr CCPoint kGrip{0.350f, 0.633f};
-    constexpr CCPoint kShoulder{0.f, -3.f};
+    constexpr CCPoint kShoulder{7.f, -5.f};
 
     static float approach(float value, float target, float step) {
         return value < target ? std::min(value + step, target) : std::max(value - step, target);
@@ -54,6 +54,7 @@ namespace shootmenus {
 
         m_gun = CCSprite::create("gun.png"_spr);
         if (!m_gun) return false;
+        m_gun->getTexture()->setAliasTexParameters();
         m_gun->setAnchorPoint(kGrip);
         m_gun->setScale(kGunLength / m_gun->getContentWidth());
 
@@ -136,8 +137,10 @@ namespace shootmenus {
     }
 
     void Cube::aim(CCPoint target) {
-        auto delta = convertToNodeSpace(target) - m_pivot->getPosition();
-        auto left = delta.x < 0.f;
+        auto local = convertToNodeSpace(target);
+        auto left = local.x < 0.f;
+        m_pivot->setPosition({left ? -kShoulder.x : kShoulder.x, kShoulder.y});
+        auto delta = local - m_pivot->getPosition();
         m_pivot->setRotation(-CC_RADIANS_TO_DEGREES(std::atan2(delta.y, delta.x)));
         m_gun->setScaleY(std::abs(m_gun->getScaleY()) * (left ? -1.f : 1.f));
         m_icon->setScaleX(std::abs(m_icon->getScaleX()) * (left ? -1.f : 1.f));

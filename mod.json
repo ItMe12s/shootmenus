@@ -1,12 +1,12 @@
 {
-	"geode": "5.11.2",
+	"geode": "6.0.0-beta.3",
 	"gd": {
-		"win": "2.2081",
-		"mac": "2.2081"
+		"win": "2.2091",
+		"mac": "2.2091"
 	},
 	"id": "imes.shootmenus",
 	"name": "Menu Assault",
-	"version": "v1.0.0",
+	"version": "v1.0.1",
 	"developer": "imes",
 	"description": "Run around and shoot gd menus!",
 	"tags": [
